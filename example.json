@@ -1,0 +1,10 @@
+{
+  "template_name": "example",
+  "ics_name": "example",
+  "email_address": "sidonie@bouthors.com",
+  "subject": "Test",
+  "parameters": {
+    "title": "Hello World!",
+    "content": "This is an example email."
+  }
+}
