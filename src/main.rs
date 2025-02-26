@@ -152,7 +152,7 @@ fn index() -> &'static str {
 #[rocket::main]
 async fn main() {
     rocket::build()
-        .mount("/", routes![index, send])
+        .mount("/mail-sender", routes![index, send])
         .launch()
         .await
         .unwrap();
