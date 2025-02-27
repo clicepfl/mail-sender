@@ -21,6 +21,9 @@ FROM runtime
 WORKDIR /app
 COPY --from=rust_build /app/target/release/mail-sender ./mail-sender
 
+COPY ics ./ics
+COPY templates ./templates
+
 ENV RUST_LOG=info
 
 CMD ["./mail-sender"]
