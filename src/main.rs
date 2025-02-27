@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 
 use dotenv::dotenv;
@@ -6,6 +5,7 @@ use lettre::message::header::ContentType;
 use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use liquid::Object;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
@@ -17,7 +17,7 @@ struct EmailRequest {
     ics_name: Option<String>,
     email_address: String,
     subject: String,
-    parameters: HashMap<String, String>,
+    parameters: Object,
 }
 
 #[post("/send?<secret>", format = "json", data = "<data>")]
@@ -81,24 +81,27 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
         .unwrap()
         .parse(&template_file)
         .unwrap();
+
     let body = template.render(&data.parameters).unwrap();
 
     // Create email message
     let mut multipart = MultiPart::alternative().singlepart(SinglePart::html(body.to_string()));
 
     // Attach ICS file
-    if let Some(ics_name) = &data.ics_name { match fs::read(format!("ics/{ics_name}.ics")) {
-        Ok(ics) => {
-            multipart = multipart.singlepart(
-                Attachment::new(format!("{}.ics", ics_name))
-                    .body(ics, ContentType::parse("text/calendar").unwrap()),
-            );
+    if let Some(ics_name) = &data.ics_name {
+        match fs::read(format!("ics/{ics_name}.ics")) {
+            Ok(ics) => {
+                multipart = multipart.singlepart(
+                    Attachment::new(format!("{}.ics", ics_name))
+                        .body(ics, ContentType::parse("text/calendar").unwrap()),
+                );
+            }
+            Err(e) => {
+                eprintln!("Error reading ICS file: {:#?}", e);
+                return Status::InternalServerError;
+            }
         }
-        Err(e) => {
-            eprintln!("Error reading ICS file: {:#?}", e);
-            return Status::InternalServerError;
-        }
-    } };
+    };
 
     // Create email
     let email = Message::builder()
