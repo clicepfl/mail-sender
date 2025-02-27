@@ -87,21 +87,18 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
     let mut multipart = MultiPart::alternative().singlepart(SinglePart::html(body.to_string()));
 
     // Attach ICS file
-    match &data.ics_name {
-        Some(ics_name) => match fs::read(format!("ics/{ics_name}.ics")) {
-            Ok(ics) => {
-                multipart = multipart.singlepart(
-                    Attachment::new(format!("{}.ics", ics_name))
-                        .body(ics, ContentType::parse("text/calendar").unwrap()),
-                );
-            }
-            Err(e) => {
-                eprintln!("Error reading ICS file: {:#?}", e);
-                return Status::InternalServerError;
-            }
-        },
-        None => (),
-    };
+    if let Some(ics_name) = &data.ics_name { match fs::read(format!("ics/{ics_name}.ics")) {
+        Ok(ics) => {
+            multipart = multipart.singlepart(
+                Attachment::new(format!("{}.ics", ics_name))
+                    .body(ics, ContentType::parse("text/calendar").unwrap()),
+            );
+        }
+        Err(e) => {
+            eprintln!("Error reading ICS file: {:#?}", e);
+            return Status::InternalServerError;
+        }
+    } };
 
     // Create email
     let email = Message::builder()
@@ -121,13 +118,13 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
         .build();
 
     // Send the email
-    return match mailer.send(&email) {
+    match mailer.send(&email) {
         Ok(_) => Status::Ok,
         Err(e) => {
             eprintln!("Error sending email: {:#?}", e);
             Status::InternalServerError
         }
-    };
+    }
 }
 
 #[get("/")]
