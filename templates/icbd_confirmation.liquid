@@ -22,14 +22,14 @@
             <tr>
                 <td>
                     <h2>Summary of your registration:</h2>
-                    {% for activity in activities %}
+                    {% for activity in activities_populated %}
                     <p>From <strong>{{ activity.timeslot.start_time | slice: 0, 5 }}</strong> to <strong>{{
                             activity.timeslot.end_time | slice: 0, 5 }}</strong>: {{ activity.translation.name }} in
                         <strong>{{ activity.timeslot.room }}</strong>
                     </p>
                     {% endfor %}
 
-                    {% if registration.cv_correction %}
+                    {% if cv_correction %}
                     <p>You are registered for a CV correction. Please note that you must attend the online
                         conference:
                         <strong> "Crafting an effective CV" </strong>, Friday March 7, starting at 12:15.
