@@ -18,6 +18,7 @@ struct EmailRequest {
     email_address: String,
     subject: String,
     parameters: Object,
+    qrbill_params: Option<serde_json::Value>,
 }
 
 #[post("/send?<secret>", format = "json", data = "<data>")]
@@ -103,6 +104,55 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
         }
     };
 
+    // Attach QR bill file
+    if let Some(qrbill_params) = &data.qrbill_params {
+        let client = reqwest::blocking::Client::new();
+        let qrbill_response = match client
+            .post("https://clic.epfl.ch/qrbill-generator/")
+            .json(&qrbill_params)
+            .send()
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                eprintln!("Error calling QR bill API: {:#?}", e);
+                return Status::InternalServerError;
+            }
+        };
+
+        let svg_data = match qrbill_response.bytes() {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                eprintln!("Error reading QR bill response: {:#?}", e);
+                return Status::InternalServerError;
+            }
+        };
+
+        // Create a temporary file to hold the SVG
+        let temp_file_path = format!("/tmp/qrbill_{}.svg", chrono::Utc::now().timestamp());
+        if let Err(e) = fs::write(&temp_file_path, &svg_data) {
+            eprintln!("Error writing QR bill file: {:#?}", e);
+            return Status::InternalServerError;
+        }
+
+        let qrbill_attachment = match fs::read(&temp_file_path) {
+            Ok(file_content) => file_content,
+            Err(e) => {
+                eprintln!("Error reading QR bill file: {:#?}", e);
+                return Status::InternalServerError;
+            }
+        };
+
+        multipart = multipart.singlepart(Attachment::new("qrbill.svg".to_string()).body(
+            qrbill_attachment,
+            ContentType::parse("image/svg+xml").unwrap(),
+        ));
+
+        // Clean up the temporary file
+        if let Err(e) = fs::remove_file(&temp_file_path) {
+            eprintln!("Error removing temporary QR bill file: {:#?}", e);
+        }
+    };
+
     // Create email
     let email = Message::builder()
         .from(email_from.parse().unwrap())
@@ -140,10 +190,11 @@ fn index() -> &'static str {
           accepts a JSON object with the following keys:
 
             - template_name: the name of the template to use
-            - ics_name: the name of the ICS file to attach (optional)
             - email_address: the email address to send the email to
             - subject: the subject of the email
             - parameters: a map of parameters to pass to the template
+            - ics_name: the name of the ICS file to attach (optional)
+            - qrbill_params: a JSON object with the parameters for the QR bill (optional)
 
           as well as a secret key in the Authorization header
     "
