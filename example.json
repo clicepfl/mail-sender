@@ -1,10 +1,24 @@
 {
   "template_name": "example",
-  "ics_name": "example",
   "email_address": "sidonie@bouthors.com",
   "subject": "Test",
   "parameters": {
     "title": "Hello World!",
     "content": "This is an example email."
+  },
+  "ics_name": "example",
+  "qrbill_params": {
+    "account": "CH2304835177498341002",
+    "amount": 50,
+    "currency": "CHF",
+    "message": "Custom Message",
+    "creditor": {
+      "name": "CLIC",
+      "street": "Station 14, EPFL",
+      "houseNo": "",
+      "postalCode": "1015",
+      "town": "Lausanne",
+      "countryCode": "CH"
+    }
   }
 }
