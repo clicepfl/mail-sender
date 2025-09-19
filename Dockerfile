@@ -20,6 +20,7 @@ RUN cargo build --release
 FROM runtime
 WORKDIR /app
 COPY --from=rust_build /app/target/release/mail-sender ./mail-sender
+COPY fonts/ ./fonts/
 
 ENV RUST_LOG=info
 

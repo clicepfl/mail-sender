@@ -1,5 +1,3 @@
-use std::fs;
-
 use dotenv::dotenv;
 use lettre::message::header::ContentType;
 use lettre::message::{Attachment, MultiPart, SinglePart};
@@ -10,6 +8,10 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 use serde::Deserialize;
+use std::fs;
+use std::sync::Arc;
+use svg2pdf::usvg::fontdb;
+use svg2pdf::{usvg, ConversionOptions, PageOptions};
 
 #[derive(Deserialize)]
 struct EmailRequest {
@@ -22,7 +24,7 @@ struct EmailRequest {
 }
 
 #[post("/send?<secret>", format = "json", data = "<data>")]
-fn send(secret: String, data: Json<EmailRequest>) -> Status {
+async fn send(secret: String, data: Json<EmailRequest>) -> Status {
     // Load environment variables
     dotenv().ok();
     let email_username = match std::env::var("EMAIL_USERNAME") {
@@ -106,11 +108,12 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
 
     // Attach QR bill file
     if let Some(qrbill_params) = &data.qrbill_params {
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::Client::new();
         let qrbill_response = match client
             .post("https://clic.epfl.ch/qrbill-generator/")
             .json(&qrbill_params)
             .send()
+            .await
         {
             Ok(resp) => resp,
             Err(e) => {
@@ -119,7 +122,7 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
             }
         };
 
-        let svg_data = match qrbill_response.bytes() {
+        let svg_data = match qrbill_response.bytes().await {
             Ok(bytes) => bytes,
             Err(e) => {
                 eprintln!("Error reading QR bill response: {:#?}", e);
@@ -127,30 +130,40 @@ fn send(secret: String, data: Json<EmailRequest>) -> Status {
             }
         };
 
-        // Create a temporary file to hold the SVG
-        let temp_file_path = format!("/tmp/qrbill_{}.svg", chrono::Utc::now().timestamp());
-        if let Err(e) = fs::write(&temp_file_path, &svg_data) {
-            eprintln!("Error writing QR bill file: {:#?}", e);
-            return Status::InternalServerError;
-        }
+        let mut font_db = fontdb::Database::new();
+        font_db
+            .load_font_file("./fonts/LiberationSans-Regular.ttf")
+            .unwrap();
+        let font_db_arc = Arc::new(font_db);
 
-        let qrbill_attachment = match fs::read(&temp_file_path) {
-            Ok(file_content) => file_content,
+        let opt = usvg::Options {
+            font_family: "Liberation Sans".to_string(),
+            fontdb: font_db_arc,
+            ..Default::default()
+        };
+
+        let rtree = match usvg::Tree::from_data(&svg_data, &opt) {
+            Ok(tree) => tree,
             Err(e) => {
-                eprintln!("Error reading QR bill file: {:#?}", e);
+                eprintln!("Error parsing SVG: {:#?}", e);
                 return Status::InternalServerError;
             }
         };
 
-        multipart = multipart.singlepart(Attachment::new("qrbill.svg".to_string()).body(
-            qrbill_attachment,
-            ContentType::parse("image/svg+xml").unwrap(),
-        ));
+        let pdf_data =
+            match svg2pdf::to_pdf(&rtree, ConversionOptions::default(), PageOptions::default()) {
+                Ok(data) => data,
+                Err(e) => {
+                    eprintln!("Error converting SVG to PDF: {:#?}", e);
+                    return Status::InternalServerError;
+                }
+            };
 
-        // Clean up the temporary file
-        if let Err(e) = fs::remove_file(&temp_file_path) {
-            eprintln!("Error removing temporary QR bill file: {:#?}", e);
-        }
+        // Use the pdf_data vector directly for the attachment
+        multipart = multipart.singlepart(
+            Attachment::new("qrbill.pdf".to_string())
+                .body(pdf_data, ContentType::parse("application/pdf").unwrap()),
+        );
     };
 
     // Create email

@@ -4,7 +4,7 @@ This repository is a small Rust backend used to send emails. The emails use [Liq
 
 ## Usage
 
-Available at http://clic.epfl.ch/qrbill-generator for sending emails from it.clic@epfl.ch (requires password access).
+Available at http://clic.epfl.ch/mail-sender for sending emails from it.clic@epfl.ch (requires password access).
 
 Can be run locally for other uses, see below.
 
@@ -14,13 +14,13 @@ Liquid templates must be placed in the `templates` folder and ICS files must be 
 
 ### API
 
-#### POST /send
+#### POST /mail-sender/send
 
 This endpoint sends an email based on a specified template and attachments.
 
 ##### Authentication 
 
-Requires a secret key to be passed as a URL query parameter (e.g., `/send?secret=<secret_key>`).
+Requires a secret key to be passed as a URL query parameter (e.g., `/mail-sender/send?secret=<secret_key>`).
 
 ##### Request Body
 
@@ -54,7 +54,7 @@ Run `cargo run` to start the backend.
 Use the following command to make requests to the backend (if run locally):
 
 ```bash
-curl http://127.0.0.1:8000/send\?secret\=<example_secret> -X POST -H 'Content-Type: application/json' -d '@<body.json>'
+curl http://127.0.0.1:8000/mail-sender/send\?secret\=<example_secret> -X POST -H 'Content-Type: application/json' -d '@<body.json>'
 ```
 
 Where `<example_secret>` should be the same secret as stored in the `SECRET` environment variable, and `<body.json>` is a file containing the request body (an example request body is given in `example.json`).
