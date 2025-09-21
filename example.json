@@ -1,6 +1,6 @@
 {
   "template_name": "example",
-  "email_address": "sidonie@bouthors.com",
+  "email_address": "example@epfl.ch",
   "subject": "Test",
   "parameters": {
     "title": "Hello World!",
