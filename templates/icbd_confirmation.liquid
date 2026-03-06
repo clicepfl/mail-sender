@@ -23,10 +23,14 @@
                 <td>
                     <h2>Summary of your registration:</h2>
                     {% for activity in activities_populated %}
+                    {% if activity.timeslot %}
                     <p>From <strong>{{ activity.timeslot.start_time | slice: 0, 5 }}</strong> to <strong>{{
                             activity.timeslot.end_time | slice: 0, 5 }}</strong>: {{ activity.translation.name }} in
                         <strong>{{ activity.timeslot.room }}</strong>
                     </p>
+                    {% else %}
+                    <strong>Waitlist</strong>: {{ activity.translation.name }}
+                    {% endif %}
                     {% endfor %}
 
                     {% if cv_correction %}
