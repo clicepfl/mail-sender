@@ -65,7 +65,7 @@ async fn send(secret: String, data: Json<EmailRequest>) -> Status {
 
     // Check secret
     if secret != expected_secret {
-        return Status::Unauthorized;
+        return Status::Forbidden;
     }
 
     // Read template file
