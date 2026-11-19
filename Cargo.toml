@@ -1,18 +1,18 @@
 [package]
 name = "mail-sender"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-chrono = "0.4.40"
+chrono = "0.4.45"
 dotenv = "0.15.0"
 ics = "0.5.8"
-lettre = "0.11.14"
-liquid = "0.26.9"
+lettre = "0.11.24"
+liquid = "0.26.11"
 reqwest = { version = "0.12", features = ["json"] }
-rocket = { version = "0.5.1", features = ["json"] }
-serde = { version = "1.0.218", features = ["derive"] }
-serde_json = "1.0.139"
+rocket = { version = "0.5.4", features = ["json"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
 svg2pdf = "0.13.0"
-tokio = "1.43.0"
-uuid = { version = "1.15.0", features = ["v4"] }
+tokio = "1.54.1"
+uuid = { version = "1.29.3", features = ["v4"] }
